@@ -1,1 +1,0 @@
-# zh_strava_bot
