@@ -10,9 +10,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-
-
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -29,12 +26,26 @@ import java.util.StringJoiner;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
+    // zh, evan, mervyn, jy, pong, igy, raymond
+    public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098"};
+
+    //divine stampede
+    public static final String[] groupsToForward = {"-994335605", "-1002065075801"};
+    public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
+
 
     @Autowired
     private Properties properties;
     @PostConstruct
     public void post() {
-        System.out.println("strava bot service started");
+        groupPrefixes.put("divine", "-994335605");
+        groupPrefixes.put("sn", "-1002065075801");
+        groupPrefixes.put("recre", "-1001927647862");
+        groupPrefixes.put("ihg", "-1002095927754");
+        groupPrefixes.put("retirement", "-4070951855");
+
+
+        System.out.println("acow123 bot service started");
     }
 
     @Override
@@ -45,14 +56,16 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Override
     public String getBotToken() {
         return properties.getTelegramAPIKey();
-//        return "6602618744:AAF-OxgLSNKWx9yB-npMhPwRhxL_f8EMmKs";
     }
 
     @Override
     public void onUpdateReceived(Update update) {
         Message message = update.getMessage();
         String chatId = String.valueOf(message.getChatId());
-        if (String.valueOf(chatId).equals("-1002065075801") || String.valueOf(chatId).equals("-994335605")) {
+        if (chatId.startsWith("-")) {
+            if (!groupPrefixes.containsValue(chatId)) {
+                System.out.println("group message received from " + chatId);
+            }
             return;
         }
         String user = message.getFrom().getUserName();
@@ -62,149 +75,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         System.out.println("message received from " + chatId
                 + ", user: " + user
                 + ", message: " + messageContent);
-//        getActivities();
-        sendResponse(chatId, "hello " + firstName +"! Only the chosen one will receive special messages :)");
-    }
 
-    public void getActivitiesAndSend() {
-        String zhChatId = "260987722"; //zhenhong
-        String wlChatId = "273199341"; //wl
-
-        String activities = getActivities();
-        JSONArray activitiesArray = new JSONArray(activities);
-
-        for (int i = 0; i < activitiesArray.length(); i++) {
-            JSONObject activity = activitiesArray.getJSONObject(i);
-
-
-            String startDate = activity.getString("start_date_local");
-            String formattedStartDate = startDate.replace('T', ' ').replace("Z", "");
-            double distance = activity.getDouble("distance")/1000;
-            int movingTime = activity.getInt("moving_time");  // moving time in seconds
-            double pace = movingTime/distance/60;
-            int paceMinutes = (int)pace;
-            int paceSeconds = (int)(pace % 1 * 60);
-            double avgHeartRate = activity.getDouble("average_heartrate");
-            // ... extract other fields as needed
-
-            // Print or process the extracted information
-            StringBuilder sb = new StringBuilder();
-            sb.append(formattedStartDate);
-            sb.append(System.lineSeparator());
-            sb.append("Distance: " + distance);
-            sb.append(System.lineSeparator());
-            sb.append("Pace: " + paceMinutes + ":" + paceSeconds + "min/km");
-            sb.append(System.lineSeparator());
-            sb.append("Average HR: " + avgHeartRate);
-
-            System.out.println(sb.toString());
-
-            sendResponse(zhChatId, sb.toString());
-            sendResponse(wlChatId, sb.toString());
+        if (!isAuthorized(chatId)) {
+            sendResponse(chatId, "hello " + firstName +"! i am adarsh and i thank you for your message :)");
+            return;
         }
 
-    }
-
-    public String getActivities() {
-        try {
-            Instant now = Instant.now(); // Current time
-            Instant twelveHoursAgo = now.minus(12, ChronoUnit.HOURS); // Time 24 hours ago
-            long unixTime12HoursAgo = twelveHoursAgo.getEpochSecond();
-            String timeString = String.valueOf(unixTime12HoursAgo);
-
-            URL url = new URL("https://www.strava.com/api/v3/activities?after=" + timeString);
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-
-
-            String accessToken = GetAccessToken();
-            con.setRequestProperty("Authorization", "Bearer " + accessToken);
-
-            int responseCode = con.getResponseCode();
-            System.out.println("Response Code : " + responseCode);
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-
-            System.out.println(response.toString());
-            return response.toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private String GetAccessToken() {
-        String response = GetRefreshTokenResponse();
-        JSONObject jsonObj = new JSONObject(response.toString());
-        String accessToken = jsonObj.getString("access_token");
-        return accessToken;
-    }
-
-    private String GetRefreshTokenResponse() {
-        String url = "https://www.strava.com/api/v3/oauth/token";
-//        String clientId = "120002";
-//        String clientSecret = "41c89eefa09db3f43b0a90f9bb35def3b7887dfb";
-//        String refreshToken = "7629e073b83200cce0cc8c6b3aadb2e9acde2a95";
-        String clientId = properties.getStravaClientId();
-        String clientSecret = properties.getClientSecret();
-        String refreshToken = properties.getRefreshToken();
-        HttpURLConnection connection = null;
-        try {
-            URL urlObj = new URL(url);
-            connection = (HttpURLConnection) urlObj.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-            connection.setDoOutput(true);
-
-            Map<String, String> arguments = new HashMap<>();
-            arguments.put("client_id", clientId);
-            arguments.put("client_secret", clientSecret);
-            arguments.put("grant_type", "refresh_token");
-            arguments.put("refresh_token", refreshToken);
-            StringJoiner sj = new StringJoiner("&");
-            for (Map.Entry<String, String> entry : arguments.entrySet()) {
-                sj.add(URLEncoder.encode(entry.getKey(), "UTF-8") + "="
-                        + URLEncoder.encode(entry.getValue(), "UTF-8"));
-            }
-
-            byte[] out = sj.toString().getBytes(StandardCharsets.UTF_8);
-            int length = out.length;
-
-            connection.setFixedLengthStreamingMode(length);
-            connection.connect();
-            try (DataOutputStream os = new DataOutputStream(connection.getOutputStream())) {
-                os.write(out);
-            }
-
-            // Read the response from the input stream
-            StringBuilder response = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-                String responseLine = null;
-                while ((responseLine = br.readLine()) != null) {
-                    response.append(responseLine.trim());
-                }
-            }
-            return response.toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            // Handle the exception as you prefer
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
+        String[] parts = messageContent.split(" ");
+        if (groupPrefixes.containsKey(parts[0])) {
+            String messageToSend = messageContent.substring(parts[0].length() + 1); //space character
+            sendResponse(groupPrefixes.get(parts[0]), messageToSend);
+        } else {
+            for(String groupId : groupsToForward) {
+                sendResponse(groupId, messageContent);
             }
         }
-        return null;
     }
 
     public void sendResponse(String chatId, String messageText) {
@@ -217,6 +102,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             e.printStackTrace(); // Log the exception
         }
+    }
+
+    public boolean isAuthorized(String chatId) {
+        for(String element : allowedIds) {
+            if(element.equals(chatId)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

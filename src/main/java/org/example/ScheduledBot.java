@@ -24,14 +24,4 @@ public class ScheduledBot {
             e.printStackTrace();
         }
     }
-
-    @Scheduled(cron = "0 0 11,23 * * ?")
-//    @Scheduled(fixedRate = 30000)
-    public void sendStravaUpdate() {
-        try {
-            telegramBot.getActivitiesAndSend();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>zh-strava-bot</artifactId>
+    <artifactId>acow123-bot</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -64,7 +64,6 @@
             <artifactId>json</artifactId>
             <version>20210307</version>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -81,6 +80,7 @@
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
     </build>
 
