@@ -12,8 +12,8 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;
-import java.util.stream.Collectors;
+import java.util.HashMap;/help
+
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
