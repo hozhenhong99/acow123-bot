@@ -65,6 +65,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         String groupPrefix = userGroupMapping.get(user);
         String groupId = groupPrefixes.get(groupPrefix);
 
+        if (!isAuthorized(chatId)) {
+            return;
+        }
+
         if (message.hasText()) {
             String messageContent = message.getText();
             System.out.println("Text message received from " + chatId
