@@ -4,15 +4,15 @@ package org.example;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.send.*;
-import org.telegram.telegrambots.meta.api.objects.*;
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker;
+import org.telegram.telegrambots.meta.api.methods.CopyMessage;
+import org.telegram.telegrambots.meta.api.methods.ParseMode;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
@@ -42,7 +42,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "zh_strava_bot";
+        return "acow123_bot";
     }
 
     @Override
@@ -87,65 +87,77 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             sendResponse(groupId, messageContent);
         } else if (message.hasVideo()) {
-            Video video = message.getVideo();
-            InputFile videoFile = new InputFile(video.getFileId());
-            String caption = message.getCaption();
-            System.out.println("Video message received from " + chatId
+            System.out.println("Video received from " + chatId
                     + ", user: " + user
-                    + ", videoId: " + video.getFileId());
-            sendVideo(groupId, videoFile, caption);
+                    + ", videoId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasVoice()) {
-            Voice voice = message.getVoice();
-            InputFile voiceFile = new InputFile(voice.getFileId());
-            String caption = message.getCaption(); // Extract caption
             System.out.println("Voice message received from " + chatId
                     + ", user: " + user
-                    + ", voiceId: " + voice.getFileId());
-            sendVoice(groupId, voiceFile, caption);
+                    + ", voicemessageId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasSticker()) {
-            Sticker sticker = message.getSticker();
-            InputFile stickerFile = new InputFile(sticker.getFileId());
-            System.out.println("Sticker message received from " + chatId
+            System.out.println("Sticker received from " + chatId
                     + ", user: " + user
-                    + ", stickerId: " + sticker.getFileId());
-            sendSticker(groupId, stickerFile);
+                    + ", stickerId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasDocument()) {
-            // Handle document message
-            Document document = message.getDocument();
-            InputFile documentFile = new InputFile(document.getFileId());
-            System.out.println("Document message received from " + chatId
+            System.out.println("Document received from " + chatId
                     + ", user: " + user
-                    + ", documentId: " + document.getFileId());
-            sendDocument(groupId, documentFile);
+                    + ", documentId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
+        }  else if (message.hasPhoto()) {
+            System.out.println("Photo received from " + chatId
+                    + ", user: " + user
+                    + ", photoId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasVideoNote()) {
-            VideoNote videonote = message.getVideoNote();
-            InputFile videoFile = new InputFile(videonote.getFileId());
-            System.out.println("Document message received from " + chatId
+            System.out.println("Telebubble received from " + chatId
                     + ", user: " + user
-                    + ", documentId: " + videonote.getFileId());
-            sendVideoNote(groupId, videoFile);
-        } else if (message.hasPhoto()) {
-            List<PhotoSize> photos = message.getPhoto();
-            PhotoSize photo = photos.stream()
-                    .max(Comparator.comparing(PhotoSize::getFileSize))
-                    .orElse(null);
-            if (photo != null) {
-                InputFile photoFile = new InputFile(photo.getFileId());
-                String caption = message.getCaption();
-                System.out.println("Photo message received from " + chatId
-                        + ", user: " + user
-                        + ", photoId: " + photo.getFileId());
-                sendPhoto(groupId, photoFile, caption);
-            }
+                    + ", telebubbleId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
+        } else if (message.hasPoll()) {
+            System.out.println("Poll received from " + chatId
+                    + ", user: " + user
+                    + ", pollId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         }
+
+    }
+
+    public void sendUserGuide(String chatId) {
+        StringBuilder guide = new StringBuilder();
+        guide.append("\uD83D\uDC76\uD83C\uDFFE **Welcome to the Adarsh is a lil nigger User Guide!** \uD83D\uDC76\uD83C\uDFFE\n\n");
+        guide.append("Here are some commands you can use:\n");
+        guide.append("/help - Display this user guide.\n");
+        guide.append("/list - List out the groups for you to choose!\n");
+
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(guide.toString());
+        sendMessage.setParseMode(ParseMode.MARKDOWN);
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace(); // Log the exception
+        }
+    }
+
+    public void sendGroupList(String chatId) {
+        StringBuilder list = new StringBuilder();
+        list.append("Available groups are:\n");
+        groupPrefixes.keySet().forEach(group -> list.append("/").append(group).append("\n"));
+
+        sendResponse(chatId, list.toString());
     }
 
     private void handleCommand(String chatId, String user, String command) {
         if (command.equals("/help")) {
-            String formattedGroups = groupPrefixes.keySet().stream()
-                    .map(group -> "/" + group)
-                    .collect(Collectors.joining(", "));
-            sendResponse(chatId, "Available groups:\n" + formattedGroups);
+            sendUserGuide(chatId);
+            return;
+        } else if (command.equals("/list")) {
+            sendGroupList(chatId);
             return;
         }
         String[] parts = command.split(" ");
@@ -163,6 +175,19 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    public void forwardMessage(String chatId, String fromChatId, String messageId) {
+        CopyMessage copyMessage = new CopyMessage();
+        copyMessage.setChatId(chatId);
+        copyMessage.setFromChatId(fromChatId);
+        copyMessage.setMessageId(Integer.parseInt(messageId)); // Convert messageId to integer
+
+        try {
+            execute(copyMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace(); // Log the exception
+        }
+    }
+
     public void sendResponse(String chatId, String messageText) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
@@ -172,78 +197,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace(); // Log the exception
-        }
-    }
-
-    public void sendPhoto(String chatId, InputFile file, String caption) {
-        SendPhoto message = new SendPhoto();
-        message.setChatId(chatId);
-        message.setPhoto(file);
-        message.setCaption(caption); // Set caption
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-
-    public void sendVideo(String chatId, InputFile file, String caption) {
-        SendVideo message = new SendVideo();
-        message.setChatId(chatId);
-        message.setVideo(file);
-        message.setCaption(caption); // Set caption
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-    public void sendVideoNote(String chatId, InputFile file) {
-        SendVideo message = new SendVideo();
-        message.setChatId(chatId);
-        message.setVideo(file);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-    public void sendSticker(String chatId, InputFile file) {
-        SendSticker message = new SendSticker();
-        message.setChatId(chatId);
-        message.setSticker(file);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-
-    public void sendDocument(String chatId, InputFile file) {
-        SendDocument message = new SendDocument();
-        message.setChatId(chatId);
-        message.setDocument(file);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-    public void sendVoice(String chatId, InputFile file, String caption) {
-        SendVoice message = new SendVoice();
-        message.setChatId(chatId);
-        message.setVoice(file);
-        message.setCaption(caption);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log
         }
     }
 
