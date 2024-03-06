@@ -65,29 +65,24 @@ public class TelegramBot extends TelegramLongPollingBot {
         String groupPrefix = userGroupMapping.get(user);
         String groupId = groupPrefixes.get(groupPrefix);
 
-        // Check message type
         if (message.hasText()) {
             String messageContent = message.getText();
             System.out.println("Text message received from " + chatId
                     + ", user: " + user
                     + ", message: " + messageContent);
 
-            // Handle commands
             if (messageContent.startsWith("/")) {
                 handleCommand(chatId, user, messageContent);
                 return;
             }
 
-            // Check if user has a group set, if not send a message
             if (!userGroupMapping.containsKey(user)) {
                 sendResponse(chatId, "Please select a group by using a command like /divine or /sn before sending messages.\n\n Do /help for more groups!");
                 return;
             }
 
-            // Forward text message to the group associated with the user
             sendResponse(groupId, messageContent);
         } else if (message.hasVideo()) {
-            // Handle video message
             Video video = message.getVideo();
             InputFile videoFile = new InputFile(video.getFileId());
             String caption = message.getCaption();
@@ -96,7 +91,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     + ", videoId: " + video.getFileId());
             sendVideo(groupId, videoFile, caption);
         } else if (message.hasVoice()) {
-            // Handle voice message
             Voice voice = message.getVoice();
             InputFile voiceFile = new InputFile(voice.getFileId());
             String caption = message.getCaption(); // Extract caption
@@ -105,7 +99,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     + ", voiceId: " + voice.getFileId());
             sendVoice(groupId, voiceFile, caption);
         } else if (message.hasSticker()) {
-            // Handle sticker message
             Sticker sticker = message.getSticker();
             InputFile stickerFile = new InputFile(sticker.getFileId());
             System.out.println("Sticker message received from " + chatId
@@ -121,7 +114,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     + ", documentId: " + document.getFileId());
             sendDocument(groupId, documentFile);
         } else if (message.hasVideoNote()) {
-            // Handle videonote message
             VideoNote videonote = message.getVideoNote();
             InputFile videoFile = new InputFile(videonote.getFileId());
             System.out.println("Document message received from " + chatId
@@ -130,7 +122,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendVideoNote(groupId, videoFile);
         } else if (message.hasPhoto()) {
             List<PhotoSize> photos = message.getPhoto();
-            // Get the largest photo
             PhotoSize photo = photos.stream()
                     .max(Comparator.comparing(PhotoSize::getFileSize))
                     .orElse(null);
