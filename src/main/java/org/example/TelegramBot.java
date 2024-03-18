@@ -7,29 +7,31 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.CopyMessage;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;/help
+import java.util.HashMap;
 
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
     // zh, evan, mervyn, jy, pong, igy, raymond
     public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098"};
-
+    public static final String adarshId = "1032794070";
     //divine stampede
     public static final String[] groupsToForward = {"-994335605", "-1002065075801"};
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
     private final HashMap<String, String> userGroupMapping = new HashMap<>();
+    private Boolean isSilenced = true;
 
     @Autowired
     private Properties properties;
     @PostConstruct
     public void post() {
-        groupPrefixes.put("test", "-4183226315");
+//        groupPrefixes.put("divine", "-4183226315"); //testing
         groupPrefixes.put("divine", "-994335605");
         groupPrefixes.put("sn", "-1002065075801");
         groupPrefixes.put("recre", "-1001927647862");
@@ -54,36 +56,55 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         Message message = update.getMessage();
         String chatId = String.valueOf(message.getChatId());
-        if (chatId.startsWith("-")) {
-            if (!groupPrefixes.containsValue(chatId)) {
-                System.out.println("Group message received from " + chatId);
+        String userId = message.getFrom().getId().toString();
+        String user = message.getFrom().getUserName();
+//        if (chatId.startsWith("-")) {
+//            if (!groupPrefixes.containsValue(chatId)) {
+//                System.out.println("Group message received from " + chatId);
+//            }
+//            return;
+//        }
+        String groupPrefix = userGroupMapping.get(user);
+        String groupId = groupPrefixes.get(groupPrefix);
+        System.out.println("Group message received from " + user);
+        if (!isAuthorized(chatId) && !(userId.equals(adarshId))) {
+            return;
+        }
+
+        if (userId.equals(adarshId) && chatId.equals(groupPrefixes.get("divine")) && isSilenced) {
+            System.out.println("Silencing Adarsh");
+            if (message.hasText()) {
+                String messageContent = message.getText();
+                DeleteMessage toDelete = new DeleteMessage();
+                toDelete.setChatId(groupPrefixes.get("divine"));
+                toDelete.setMessageId(message.getMessageId());
+                try {
+                    execute(toDelete);
+                } catch (TelegramApiException e) {
+                    e.printStackTrace(); // Log the exception
+                }
+                sendResponse(groupPrefixes.get("divine"), messageContent);
             }
             return;
         }
-        String user = message.getFrom().getUserName();
-        String firstName = message.getFrom().getFirstName();
-        String groupPrefix = userGroupMapping.get(user);
-        String groupId = groupPrefixes.get(groupPrefix);
-
-        if (!isAuthorized(chatId)) {
+        if (chatId.startsWith("-")) {
             return;
         }
-
         if (message.hasText()) {
+
             String messageContent = message.getText();
             System.out.println("Text message received from " + chatId
                     + ", user: " + user
                     + ", message: " + messageContent);
+        if (messageContent.startsWith("/")) {
+            handleCommand(chatId, user, messageContent);
+            return;
+        }
 
-            if (messageContent.startsWith("/")) {
-                handleCommand(chatId, user, messageContent);
-                return;
-            }
-
-            if (!userGroupMapping.containsKey(user)) {
-                sendResponse(chatId, "Please select a group by using a command like /divine or /sn before sending messages.\n\n Do /help for more groups!");
-                return;
-            }
+        if (!userGroupMapping.containsKey(user)) {
+            sendResponse(chatId, "Please select a group by using a command like /divine or /sn before sending messages.\n\n Do /help for more groups!");
+            return;
+        }
 
             sendResponse(groupId, messageContent);
         } else if (message.hasVideo()) {
@@ -131,6 +152,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         guide.append("Here are some commands you can use:\n");
         guide.append("/help - Display this user guide.\n");
         guide.append("/list - List out the groups for you to choose!\n");
+        guide.append("/silence or /unsilence to MUTE ADARSH!");
 
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
@@ -159,10 +181,20 @@ public class TelegramBot extends TelegramLongPollingBot {
         } else if (command.equals("/list")) {
             sendGroupList(chatId);
             return;
+        } else if (command.equals("/silence")) {
+            isSilenced = true;
+            sendResponse(chatId, "Adarsh has been silenced!");
+            return;
+        } else if (command.equals("/unsilence")) {
+            isSilenced = false;
+            sendResponse(chatId, "Adarsh has been given a voice :(");
+            return;
         }
+
         String[] parts = command.split(" ");
         if (parts.length != 1) {
-            sendResponse(chatId, "Invalid command format. Use commands like /test or /sn.");
+            sendResponse(chatId, "Invalid command format.");
+            sendUserGuide(chatId);
             return;
         }
 
