@@ -25,7 +25,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     public static final String[] groupsToForward = {"-994335605", "-1002065075801"};
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
     private final HashMap<String, String> userGroupMapping = new HashMap<>();
-    private Boolean isSilenced = true;
+    private Boolean isSilenced = false;
 
     @Autowired
     private Properties properties;
