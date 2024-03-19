@@ -36,7 +36,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         groupPrefixes.put("sn", "-1002065075801");
         groupPrefixes.put("recre", "-1001927647862");
         groupPrefixes.put("ihg", "-1002095927754");
-        groupPrefixes.put("retirement", "-4070951855");
+        groupPrefixes.put("retirement", "-1002079578384");
 
 
         System.out.println("acow123 bot service started");
