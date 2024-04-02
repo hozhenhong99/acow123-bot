@@ -21,6 +21,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     // zh, evan, mervyn, jy, pong, igy, raymond
     public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098"};
     public static final String adarshId = "1032794070";
+//    public static final String adarshId = "773474769";
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
     private final HashMap<String, String> userGroupMapping = new HashMap<>();
     private Boolean isSilenced = false;
@@ -29,7 +30,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Properties properties;
     @PostConstruct
     public void post() {
-//        groupPrefixes.put("divine", "-4183226315"); //testing
+//        groupPrefixes.put("sn", "-4183226315"); //testing
         groupPrefixes.put("divine", "-994335605");
         groupPrefixes.put("sn", "-1002065075801");
         groupPrefixes.put("recre", "-1001927647862");
@@ -74,14 +75,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (message.hasText()) {
                 String messageContent = message.getText();
                 DeleteMessage toDelete = new DeleteMessage();
-                toDelete.setChatId(groupPrefixes.get("divine"));
+                toDelete.setChatId(groupPrefixes.get("sn"));
                 toDelete.setMessageId(message.getMessageId());
                 try {
                     execute(toDelete);
                 } catch (TelegramApiException e) {
                     e.printStackTrace(); // Log the exception
                 }
-                sendResponse(groupPrefixes.get("divine"), messageContent);
+                sendResponse(groupPrefixes.get("sn"), messageContent);
             }
             return;
         }
