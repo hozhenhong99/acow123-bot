@@ -21,8 +21,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     // zh, evan, mervyn, jy, pong, igy, raymond
     public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098"};
     public static final String adarshId = "1032794070";
-    //divine stampede
-    public static final String[] groupsToForward = {"-994335605", "-1002065075801"};
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
     private final HashMap<String, String> userGroupMapping = new HashMap<>();
     private Boolean isSilenced = false;
@@ -71,7 +69,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             return;
         }
 
-        if (userId.equals(adarshId) && chatId.equals(groupPrefixes.get("divine")) && isSilenced) {
+        if (userId.equals(adarshId) && chatId.equals(groupPrefixes.get("sn")) && isSilenced) {
             System.out.println("Silencing Adarsh");
             if (message.hasText()) {
                 String messageContent = message.getText();
