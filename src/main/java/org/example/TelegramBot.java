@@ -20,8 +20,8 @@ import java.util.HashMap;
 public class TelegramBot extends TelegramLongPollingBot {
     // zh, evan, mervyn, jy, pong, igy, raymond
     public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098"};
-//    public static final String adarshId = "1032794070";
-    public static final String adarshId = "773474769";
+    public static final String adarshId = "1032794070";
+//    public static final String adarshId = "773474769";
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
     private final HashMap<String, String> userGroupMapping = new HashMap<>();
     private HashMap<String, String> pendingReplies = new HashMap<>();
@@ -34,9 +34,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Properties properties;
     @PostConstruct
     public void post() {
-        groupPrefixes.put("sn", "-4183226315"); //testing
+//        groupPrefixes.put("sn", "-4183226315"); //testing
         groupPrefixes.put("divine", "-994335605");
-//        groupPrefixes.put("sn", "-1002065075801");
+        groupPrefixes.put("sn", "-1002065075801");
         groupPrefixes.put("recre", "-1001927647862");
         groupPrefixes.put("ihg", "-1002095927754");
         groupPrefixes.put("retirement", "-1002079578384");
@@ -69,19 +69,19 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (!isAuthorized(chatId) && !(userId.equals(adarshId))) {
             return;
         }
-        if (userId.equals(adarshId) && chatId.equals(groupPrefixes.get("sn")) && isSilenced) {
+        if (userId.equals(adarshId) && (chatId.equals(groupPrefixes.get("sn")) || chatId.equals(groupPrefixes.get("retirement"))) && isSilenced) {
             System.out.println("Silencing Adarsh");
             if (message.hasText()) {
                 String messageContent = message.getText();
                 DeleteMessage toDelete = new DeleteMessage();
-                toDelete.setChatId(groupPrefixes.get("sn"));
+                toDelete.setChatId(chatId);
                 toDelete.setMessageId(message.getMessageId());
                 try {
                     execute(toDelete);
                 } catch (TelegramApiException e) {
                     e.printStackTrace(); // Log the exception
                 }
-                sendResponse(groupPrefixes.get("sn"), messageContent);
+                sendResponse(chatId, messageContent);
             }
             return;
         }
