@@ -85,6 +85,22 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             return;
         }
+        if (userId.equals(adarshId) && chatId.equals(groupPrefixes.get("retirement")) && isSilenced) {
+            System.out.println("Silencing Adarsh");
+            if (message.hasText()) {
+                String messageContent = message.getText();
+                DeleteMessage toDelete = new DeleteMessage();
+                toDelete.setChatId(groupPrefixes.get("retirement"));
+                toDelete.setMessageId(message.getMessageId());
+                try {
+                    execute(toDelete);
+                } catch (TelegramApiException e) {
+                    e.printStackTrace(); // Log the exception
+                }
+                sendResponse(groupPrefixes.get("retirement"), messageContent);
+            }
+            return;
+        }
         if (chatId.startsWith("-")) {
             System.out.println("Group message received from " + user);
             return;
