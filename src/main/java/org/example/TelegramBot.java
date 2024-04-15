@@ -19,7 +19,7 @@ import java.util.HashMap;
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
     // zh, evan, mervyn, jy, pong, igy, raymond
-    public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098"};
+    public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098", "907338890"};
     public static final String adarshId = "1032794070";
 //    public static final String adarshId = "773474769";
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
@@ -41,6 +41,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         groupPrefixes.put("ihg", "-1002095927754");
         groupPrefixes.put("retirement", "-1002079578384");
         groupPrefixes.put("b3", "-1001953422725");
+        groupPrefixes.put("enhao", "-1001767829534");
 
 
         System.out.println("acow123 bot service started");
