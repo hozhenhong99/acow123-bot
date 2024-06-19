@@ -4,37 +4,44 @@ package org.example;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.send.*;
-import org.telegram.telegrambots.meta.api.objects.*;
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker;
+import org.telegram.telegrambots.meta.api.methods.CopyMessage;
+import org.telegram.telegrambots.meta.api.methods.ParseMode;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
+
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
     // zh, evan, mervyn, jy, pong, igy, raymond
-    public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098"};
-
-    //divine stampede
-    public static final String[] groupsToForward = {"-994335605", "-1002065075801"};
+    public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098", "907338890"};
+    public static final String adarshId = "1032794070";
+//    public static final String adarshId = "773474769";
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
     private final HashMap<String, String> userGroupMapping = new HashMap<>();
+    private HashMap<String, String> pendingReplies = new HashMap<>();
+    private HashMap<String, Integer> forwardedMessageIds = new HashMap<>();
+    private HashMap<String, Long> forwardedChatIds = new HashMap<>();
+    private Boolean isSilenced = false;
+//    private Boolean isReplying = false;
 
     @Autowired
     private Properties properties;
     @PostConstruct
     public void post() {
-        groupPrefixes.put("test", "-4183226315");
+//        groupPrefixes.put("sn", "-4183226315"); //testing
         groupPrefixes.put("divine", "-994335605");
         groupPrefixes.put("sn", "-1002065075801");
         groupPrefixes.put("recre", "-1001927647862");
         groupPrefixes.put("ihg", "-1002095927754");
-        groupPrefixes.put("retirement", "-4070951855");
+        groupPrefixes.put("retirement", "-1002079578384");
+        groupPrefixes.put("b3", "-1001953422725");
+        groupPrefixes.put("enhao", "-1001767829534");
 
 
         System.out.println("acow123 bot service started");
@@ -42,7 +49,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "zh_strava_bot";
+        return "acow123_bot";
     }
 
     @Override
@@ -53,30 +60,71 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         Message message = update.getMessage();
-        String chatId = String.valueOf(message.getChatId());
-        if (chatId.startsWith("-")) {
-            if (!groupPrefixes.containsValue(chatId)) {
-                System.out.println("Group message received from " + chatId);
+        String chatId = message.getChatId().toString();
+        String userId = message.getFrom().getId().toString();
+        String user = message.getFrom().getUserName();
+        String groupPrefix = userGroupMapping.get(user);
+        String groupId = groupPrefixes.get(groupPrefix);
+        Integer messageId = message.getMessageId();
+        System.out.println("ChatID " + chatId);
+        if (!isAuthorized(chatId) && !(userId.equals(adarshId))) {
+            return;
+        }
+        if (userId.equals(adarshId) && (chatId.equals(groupPrefixes.get("sn")) || chatId.equals(groupPrefixes.get("retirement"))) && isSilenced) {
+            System.out.println("Silencing Adarsh");
+            if (message.hasText()) {
+                String messageContent = message.getText();
+                DeleteMessage toDelete = new DeleteMessage();
+                toDelete.setChatId(chatId);
+                toDelete.setMessageId(message.getMessageId());
+                try {
+                    execute(toDelete);
+                } catch (TelegramApiException e) {
+                    e.printStackTrace(); // Log the exception
+                }
+                sendResponse(chatId, messageContent);
             }
             return;
         }
-        String user = message.getFrom().getUserName();
-        String firstName = message.getFrom().getFirstName();
-        String groupPrefix = userGroupMapping.get(user);
-        String groupId = groupPrefixes.get(groupPrefix);
-
-        if (!isAuthorized(chatId)) {
+        if (chatId.startsWith("-")) {
+            System.out.println("Group message received from " + user);
             return;
         }
+        if (pendingReplies.containsKey(chatId) && message.getForwardFrom() != null) {
+//            System.out.println("pending");
+            storeForwardedMessage(message);
+            System.out.println(forwardedChatIds);
+            return;
+        }
+        if (forwardedChatIds.containsKey(chatId)) {
+            System.out.println("forwaded");
+            sendResponseToOriginalMessage(message.getText(), chatId);
+            return;
+        }
+//        if (pendingReplies.containsKey(chatId) && message.getForwardFrom() != null) {
+////            Long replyToMessageId = pendingReplies.get(message.getChatId());
+//            String forwardedMessageText = "What do you want to reply to message: " + message.getForwardFrom().getUserName() + "\n" + message.getText();
+//            Long forwardedChatId = message.getForwardFromChat().getId();
+//            Integer forwardedMessageId = message.getForwardFromMessageId();
+//            sendResponse(chatId, forwardedMessageText);
+//
+//            // Add the forwarded message details to replyMap for the next stage
+////            replyMap.put(message.getChatId(), (long) message.getMessageId());
+//            forwardedChatIds.put(message.getChatId().toString(), forwardedChatId);
+//            forwardedMessageIds.put((message.getChatId().toString()), forwardedMessageId);
+//            pendingReplies.remove(message.getChatId());
+//            System.out.println(forwardedMessageId + forwardedChatId);
+//            return;
+//        }
+
 
         if (message.hasText()) {
             String messageContent = message.getText();
             System.out.println("Text message received from " + chatId
                     + ", user: " + user
                     + ", message: " + messageContent);
-
             if (messageContent.startsWith("/")) {
-                handleCommand(chatId, user, messageContent);
+                handleCommand(chatId, user, messageContent, message);
                 return;
             }
 
@@ -87,70 +135,98 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             sendResponse(groupId, messageContent);
         } else if (message.hasVideo()) {
-            Video video = message.getVideo();
-            InputFile videoFile = new InputFile(video.getFileId());
-            String caption = message.getCaption();
-            System.out.println("Video message received from " + chatId
+            System.out.println("Video received from " + chatId
                     + ", user: " + user
-                    + ", videoId: " + video.getFileId());
-            sendVideo(groupId, videoFile, caption);
+                    + ", videoId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasVoice()) {
-            Voice voice = message.getVoice();
-            InputFile voiceFile = new InputFile(voice.getFileId());
-            String caption = message.getCaption(); // Extract caption
             System.out.println("Voice message received from " + chatId
                     + ", user: " + user
-                    + ", voiceId: " + voice.getFileId());
-            sendVoice(groupId, voiceFile, caption);
+                    + ", voicemessageId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasSticker()) {
-            Sticker sticker = message.getSticker();
-            InputFile stickerFile = new InputFile(sticker.getFileId());
-            System.out.println("Sticker message received from " + chatId
+            System.out.println("Sticker received from " + chatId
                     + ", user: " + user
-                    + ", stickerId: " + sticker.getFileId());
-            sendSticker(groupId, stickerFile);
+                    + ", stickerId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasDocument()) {
-            // Handle document message
-            Document document = message.getDocument();
-            InputFile documentFile = new InputFile(document.getFileId());
-            System.out.println("Document message received from " + chatId
+            System.out.println("Document received from " + chatId
                     + ", user: " + user
-                    + ", documentId: " + document.getFileId());
-            sendDocument(groupId, documentFile);
-        } else if (message.hasVideoNote()) {
-            VideoNote videonote = message.getVideoNote();
-            InputFile videoFile = new InputFile(videonote.getFileId());
-            System.out.println("Document message received from " + chatId
-                    + ", user: " + user
-                    + ", documentId: " + videonote.getFileId());
-            sendVideoNote(groupId, videoFile);
+                    + ", documentId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         } else if (message.hasPhoto()) {
-            List<PhotoSize> photos = message.getPhoto();
-            PhotoSize photo = photos.stream()
-                    .max(Comparator.comparing(PhotoSize::getFileSize))
-                    .orElse(null);
-            if (photo != null) {
-                InputFile photoFile = new InputFile(photo.getFileId());
-                String caption = message.getCaption();
-                System.out.println("Photo message received from " + chatId
-                        + ", user: " + user
-                        + ", photoId: " + photo.getFileId());
-                sendPhoto(groupId, photoFile, caption);
-            }
+            System.out.println("Photo received from " + chatId
+                    + ", user: " + user
+                    + ", photoId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
+        } else if (message.hasVideoNote()) {
+            System.out.println("Telebubble received from " + chatId
+                    + ", user: " + user
+                    + ", telebubbleId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
+        } else if (message.hasPoll()) {
+            System.out.println("Poll received from " + chatId
+                    + ", user: " + user
+                    + ", pollId: " + message.getMessageId());
+            forwardMessage(groupId, chatId, String.valueOf(message.getMessageId()));
         }
     }
 
-    private void handleCommand(String chatId, String user, String command) {
+    public void sendUserGuide(String chatId) {
+        StringBuilder guide = new StringBuilder();
+        guide.append("\uD83D\uDC76\uD83C\uDFFE **Welcome to the Adarsh is a lil nigger User Guide!** \uD83D\uDC76\uD83C\uDFFE\n\n");
+        guide.append("Here are some commands you can use:\n");
+        guide.append("/help - Display this user guide.\n");
+        guide.append("/list - List out the groups for you to choose!\n");
+        guide.append("/silence or /unsilence to MUTE ADARSH!");
+
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(guide.toString());
+        sendMessage.setParseMode(ParseMode.MARKDOWN);
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace(); // Log the exception
+        }
+    }
+
+    public void sendGroupList(String chatId) {
+        StringBuilder list = new StringBuilder();
+        list.append("Available groups are:\n");
+        groupPrefixes.keySet().forEach(group -> list.append("/").append(group).append("\n"));
+
+        sendResponse(chatId, list.toString());
+    }
+
+    private void handleCommand(String chatId, String user, String command, Message message) {
         if (command.equals("/help")) {
-            String formattedGroups = groupPrefixes.keySet().stream()
-                    .map(group -> "/" + group)
-                    .collect(Collectors.joining(", "));
-            sendResponse(chatId, "Available groups:\n" + formattedGroups);
+            sendUserGuide(chatId);
+            return;
+        } else if (command.equals("/list")) {
+            sendGroupList(chatId);
+            return;
+        } else if (command.equals("/silence")) {
+            isSilenced = true;
+            sendResponse(chatId, "Adarsh has been silenced!");
+            return;
+        } else if (command.equals("/unsilence")) {
+            isSilenced = false;
+            sendResponse(chatId, "Adarsh has been given a voice :(");
+            return;
+        } else if (command.equals("/reply")) {
+            sendResponse(chatId, "Forward the message you want to from a valid group chat!");
+            pendingReplies.put(chatId, "pending");
+            System.out.println(pendingReplies);
             return;
         }
+
+
         String[] parts = command.split(" ");
         if (parts.length != 1) {
-            sendResponse(chatId, "Invalid command format. Use commands like /test or /sn.");
+            sendResponse(chatId, "Invalid command format.");
+            sendUserGuide(chatId);
             return;
         }
 
@@ -160,6 +236,40 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendResponse(chatId, "Group set to " + newGroup);
         } else {
             sendResponse(chatId, "Group not found. Available groups are: " + String.join(", ", groupPrefixes.keySet()));
+        }
+    }
+    private void storeForwardedMessage(Message message) {
+        System.out.println("pending");
+        String chatId = message.getChatId().toString();
+        Long forwardedChatId = message.getForwardFromChat().getLinkedChatId();
+        Integer forwardedMessageId = message.getForwardFromMessageId();
+        System.out.println(forwardedChatId);
+        System.out.println(forwardedMessageId);
+        forwardedChatIds.put(chatId, forwardedChatId);
+        forwardedMessageIds.put(chatId, forwardedMessageId);
+        pendingReplies.remove(chatId);
+    }
+
+    // Method to send the response as a reply to the original message
+    private void sendResponseToOriginalMessage(String responseText, String chatId) {
+        Long forwardedChatId = forwardedChatIds.get(chatId);
+        Integer forwardedMessageId = forwardedMessageIds.get(chatId);
+        sendResponse(forwardedChatId.toString(), responseText, forwardedMessageId);
+        // Clean up
+        forwardedChatIds.remove(chatId);
+        forwardedMessageIds.remove(chatId);
+//        pendingReplies.remove(chatId);
+    }
+    public void forwardMessage(String chatId, String fromChatId, String messageId) {
+        CopyMessage copyMessage = new CopyMessage();
+        copyMessage.setChatId(chatId);
+        copyMessage.setFromChatId(fromChatId);
+        copyMessage.setMessageId(Integer.parseInt(messageId)); // Convert messageId to integer
+
+        try {
+            execute(copyMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace(); // Log the exception
         }
     }
 
@@ -174,76 +284,15 @@ public class TelegramBot extends TelegramLongPollingBot {
             e.printStackTrace(); // Log the exception
         }
     }
-
-    public void sendPhoto(String chatId, InputFile file, String caption) {
-        SendPhoto message = new SendPhoto();
+    public void sendResponse(String chatId, String messageText, Integer replyToMessageId) {
+        SendMessage message = new SendMessage();
         message.setChatId(chatId);
-        message.setPhoto(file);
-        message.setCaption(caption); // Set caption
-
+        message.setText(messageText);
+        message.setReplyToMessageId(replyToMessageId);
         try {
             execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace(); // Log the exception
-        }
-    }
-
-    public void sendVideo(String chatId, InputFile file, String caption) {
-        SendVideo message = new SendVideo();
-        message.setChatId(chatId);
-        message.setVideo(file);
-        message.setCaption(caption); // Set caption
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-    public void sendVideoNote(String chatId, InputFile file) {
-        SendVideo message = new SendVideo();
-        message.setChatId(chatId);
-        message.setVideo(file);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-    public void sendSticker(String chatId, InputFile file) {
-        SendSticker message = new SendSticker();
-        message.setChatId(chatId);
-        message.setSticker(file);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-
-    public void sendDocument(String chatId, InputFile file) {
-        SendDocument message = new SendDocument();
-        message.setChatId(chatId);
-        message.setDocument(file);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log the exception
-        }
-    }
-    public void sendVoice(String chatId, InputFile file, String caption) {
-        SendVoice message = new SendVoice();
-        message.setChatId(chatId);
-        message.setVoice(file);
-        message.setCaption(caption);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace(); // Log
         }
     }
 
