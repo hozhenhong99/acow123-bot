@@ -9,6 +9,7 @@ import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -20,6 +21,8 @@ import java.util.HashMap;
 public class TelegramBot extends TelegramLongPollingBot {
     // zh, evan, mervyn, jy, pong, igy, raymond
     public static final String[] allowedIds = {"260987722", "951962899", "1373801804", "138693338", "773474769", "673595156", "181233098", "907338890"};
+
+    public static final String BOT_USERNAME = "acow123_bot";
     public static final String adarshId = "1032794070";
 //    public static final String adarshId = "773474769";
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
@@ -32,6 +35,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private Properties properties;
+
+    @Autowired
+    private OpenAiClient openAiClient;
     @PostConstruct
     public void post() {
 //        groupPrefixes.put("sn", "-4183226315"); //testing
@@ -41,7 +47,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         groupPrefixes.put("ihg", "-1002095927754");
         groupPrefixes.put("retirement", "-1002079578384");
         groupPrefixes.put("b3", "-1001953422725");
-        groupPrefixes.put("enhao", "-1001767829534");
+        groupPrefixes.put("test", "-4183226315");
 
 
         System.out.println("acow123 bot service started");
@@ -68,6 +74,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         Integer messageId = message.getMessageId();
         System.out.println("ChatID " + chatId);
         if (!isAuthorized(chatId) && !(userId.equals(adarshId))) {
+            System.out.println("unauthorised " + chatId);
             return;
         }
         if (userId.equals(adarshId) && (chatId.equals(groupPrefixes.get("sn")) || chatId.equals(groupPrefixes.get("retirement"))) && isSilenced) {
@@ -87,36 +94,24 @@ public class TelegramBot extends TelegramLongPollingBot {
             return;
         }
         if (chatId.startsWith("-")) {
-            System.out.println("Group message received from " + user);
+            if (!isDirectedAtBot(message)) {
+                return;
+            }
+            String messageContent = message.getText();
+            System.out.println("message: " + messageContent);
+            if (messageContent.length() > 1000) {
+                System.out.println("too long");
+                return;
+            }
+            try {
+                String openAiResponse = openAiClient.getResponse(messageContent);
+                sendResponse(chatId, openAiResponse);
+            } catch (Exception e) {
+                System.out.println("Exception occured: " + e.toString());
+                return;
+            }
             return;
         }
-        if (pendingReplies.containsKey(chatId) && message.getForwardFrom() != null) {
-//            System.out.println("pending");
-            storeForwardedMessage(message);
-            System.out.println(forwardedChatIds);
-            return;
-        }
-        if (forwardedChatIds.containsKey(chatId)) {
-            System.out.println("forwaded");
-            sendResponseToOriginalMessage(message.getText(), chatId);
-            return;
-        }
-//        if (pendingReplies.containsKey(chatId) && message.getForwardFrom() != null) {
-////            Long replyToMessageId = pendingReplies.get(message.getChatId());
-//            String forwardedMessageText = "What do you want to reply to message: " + message.getForwardFrom().getUserName() + "\n" + message.getText();
-//            Long forwardedChatId = message.getForwardFromChat().getId();
-//            Integer forwardedMessageId = message.getForwardFromMessageId();
-//            sendResponse(chatId, forwardedMessageText);
-//
-//            // Add the forwarded message details to replyMap for the next stage
-////            replyMap.put(message.getChatId(), (long) message.getMessageId());
-//            forwardedChatIds.put(message.getChatId().toString(), forwardedChatId);
-//            forwardedMessageIds.put((message.getChatId().toString()), forwardedMessageId);
-//            pendingReplies.remove(message.getChatId());
-//            System.out.println(forwardedMessageId + forwardedChatId);
-//            return;
-//        }
-
 
         if (message.hasText()) {
             String messageContent = message.getText();
@@ -302,7 +297,29 @@ public class TelegramBot extends TelegramLongPollingBot {
                 return true;
             }
         }
+        if (groupPrefixes.containsValue(chatId)) {
+            return true;
+        }
         return false;
     }
-}
 
+    private boolean isDirectedAtBot(Message message) {
+        return isTaggingBot(message) || isReplyingToBot(message);
+    }
+
+    private boolean isTaggingBot(Message message) {
+        if (message.hasEntities()) {
+            for (MessageEntity entity : message.getEntities()) {
+                if ("mention".equals(entity.getType()) &&
+                        ("@" + BOT_USERNAME).equals(message.getText().substring(entity.getOffset(), entity.getOffset() + entity.getLength()))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isReplyingToBot(Message message) {
+        return message.isReply() && message.getReplyToMessage().getFrom().getUserName().equals(BOT_USERNAME);
+    }
+}

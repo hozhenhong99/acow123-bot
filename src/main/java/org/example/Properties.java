@@ -14,10 +14,21 @@ public class Properties {
         return telegramAPIKey;
     }
 
+    public String getOpenAiToken() {
+        return openAiToken;
+    }
+
     public void setTelegramAPIKey(String telegramAPIKey) {
         this.telegramAPIKey = telegramAPIKey;
     }
 
+    public void setOpenAiToken(String openAiToken) {
+        this.openAiToken = openAiToken;
+    }
+
     @Value("telegramAPIKey")
     String telegramAPIKey;
+
+    @Value("OpenAiToken")
+    String openAiToken;
 }
