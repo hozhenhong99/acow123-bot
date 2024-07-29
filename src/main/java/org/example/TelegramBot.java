@@ -13,6 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.LinkedList;
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
 
@@ -24,14 +25,13 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     public static final String BOT_USERNAME = "acow123_bot";
     public static final String adarshId = "1032794070";
-//    public static final String adarshId = "773474769";
     public static final HashMap<String, String> groupPrefixes = new HashMap<String, String>();
     private final HashMap<String, String> userGroupMapping = new HashMap<>();
+    private final HashMap<String, LinkedList<String>> chatHistory = new HashMap<>();
     private HashMap<String, String> pendingReplies = new HashMap<>();
     private HashMap<String, Integer> forwardedMessageIds = new HashMap<>();
     private HashMap<String, Long> forwardedChatIds = new HashMap<>();
     private Boolean isSilenced = false;
-//    private Boolean isReplying = false;
 
     @Autowired
     private Properties properties;
@@ -40,7 +40,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     private OpenAiClient openAiClient;
     @PostConstruct
     public void post() {
-//        groupPrefixes.put("sn", "-4183226315"); //testing
         groupPrefixes.put("divine", "-994335605");
         groupPrefixes.put("sn", "-1002065075801");
         groupPrefixes.put("recre", "-1001927647862");
@@ -48,6 +47,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         groupPrefixes.put("retirement", "-1002079578384");
         groupPrefixes.put("b3", "-1001953422725");
         groupPrefixes.put("test", "-4183226315");
+        groupPrefixes.put("b5new", "-1002212948737");
+        groupPrefixes.put("b3new", "-1002237411325");
+
+        for (String id: groupPrefixes.values()) {
+            LinkedList<String> ll = new LinkedList<>();
+            chatHistory.put(id, ll);
+        }
 
 
         System.out.println("acow123 bot service started");
@@ -104,7 +110,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                 return;
             }
             try {
-                String openAiResponse = openAiClient.getResponse(messageContent);
+                LinkedList<String> chat = chatHistory.get(chatId);
+                String openAiResponse = openAiClient.getResponse(messageContent, chat);
+                chat.add(messageContent);
+                chat.add(openAiResponse);
+                while (chat.size() > 10) {
+                    chat.removeFirst();
+                }
                 sendResponse(chatId, openAiResponse);
             } catch (Exception e) {
                 System.out.println("Exception occured: " + e.toString());

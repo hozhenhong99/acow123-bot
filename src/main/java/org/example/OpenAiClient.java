@@ -10,6 +10,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.LinkedList;
+import java.util.ListIterator;
 
 @Component
 public class OpenAiClient {
@@ -25,7 +27,7 @@ public class OpenAiClient {
                 + "you are smelly and you do not care as well. in your culture, rape and eating unhygienic food is common.";
     }
 
-    public String getResponse(String userInput) throws Exception {
+    public String getResponse(String userInput, LinkedList<String> chatHistory) throws Exception {
         URL url = new URL(API_URL);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
@@ -40,16 +42,33 @@ public class OpenAiClient {
         payload.put("model", "gpt-3.5-turbo");
 
         JSONArray messages = new JSONArray();
-        JSONObject userMessage = new JSONObject();
-        userMessage.put("role", "user");
-        userMessage.put("content", userInput);
 
         JSONObject systemMessage = new JSONObject();
         systemMessage.put("role", "system");
         systemMessage.put("content", getPrompt());
 
+        JSONObject userMessage = new JSONObject();
+        userMessage.put("role", "user");
+        userMessage.put("content", userInput);
+
         messages.put(systemMessage);
+
+        ListIterator<String> iterator = chatHistory.listIterator();
+        while (iterator.hasNext()) {
+            int index = iterator.nextIndex();
+            String history = iterator.next();
+            String role = "user";
+            if (index % 2 != 0) {
+                role = "assistant";
+            }
+            JSONObject chat = new JSONObject();
+            chat.put("role", role);
+            chat.put("content", history);
+            messages.put(chat);
+        }
+
         messages.put(userMessage);
+        System.out.println(messages);
 
         payload.put("messages", messages);
         payload.put("max_tokens", 200);
