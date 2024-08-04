@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.LinkedList;
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
+import java.util.Objects;
 
 
 @Component
@@ -40,15 +41,17 @@ public class TelegramBot extends TelegramLongPollingBot {
     private OpenAiClient openAiClient;
     @PostConstruct
     public void post() {
-        groupPrefixes.put("divine", "-994335605");
+
         groupPrefixes.put("sn", "-1002065075801");
-        groupPrefixes.put("recre", "-1001927647862");
         groupPrefixes.put("ihg", "-1002095927754");
         groupPrefixes.put("retirement", "-1002079578384");
         groupPrefixes.put("b3", "-1001953422725");
         groupPrefixes.put("test", "-4183226315");
         groupPrefixes.put("b5new", "-1002212948737");
         groupPrefixes.put("b3new", "-1002237411325");
+        groupPrefixes.put("interest", "-4257887928");
+//        groupPrefixes.put("recre", "-1001927647862");
+//        groupPrefixes.put("divine", "-994335605");
 
         for (String id: groupPrefixes.values()) {
             LinkedList<String> ll = new LinkedList<>();
@@ -77,12 +80,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         String user = message.getFrom().getUserName();
         String groupPrefix = userGroupMapping.get(user);
         String groupId = groupPrefixes.get(groupPrefix);
-        Integer messageId = message.getMessageId();
         System.out.println("ChatID " + chatId);
         if (!isAuthorized(chatId) && !(userId.equals(adarshId))) {
             System.out.println("unauthorised " + chatId);
             return;
         }
+
+        //silence bot
         if (userId.equals(adarshId) && (chatId.equals(groupPrefixes.get("sn")) || chatId.equals(groupPrefixes.get("retirement"))) && isSilenced) {
             System.out.println("Silencing Adarsh");
             if (message.hasText()) {
@@ -99,6 +103,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             return;
         }
+
+        // gpt bot
         if (chatId.startsWith("-")) {
             if (!isDirectedAtBot(message)) {
                 return;
@@ -226,6 +232,36 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendResponse(chatId, "Forward the message you want to from a valid group chat!");
             pendingReplies.put(chatId, "pending");
             System.out.println(pendingReplies);
+            return;
+        } else if (command.startsWith("/add")) {
+            if (!Objects.equals(chatId, "260987722") && !Objects.equals(chatId, "773474769")) {
+                return;
+            }
+            String[] messageWords = command.split(" ");
+            if (messageWords.length > 3) {
+                sendResponse(chatId, "invalid message format");
+                return;
+            }
+            String groupName = messageWords[1];
+            String groupId = messageWords[2];
+            groupPrefixes.put(groupName, groupId);
+            sendResponse(chatId, "Group added");
+            return;
+        } else if (command.startsWith("/remove")) {
+            if (!Objects.equals(chatId, "260987722") && !Objects.equals(chatId, "773474769")) {
+                return;
+            }
+            String[] messageWords = command.split(" ");
+            if (messageWords.length > 2) {
+                sendResponse(chatId, "invalid message format");
+                return;
+            }
+            if (!groupPrefixes.containsKey(messageWords[1])) {
+                sendResponse(chatId, "group doesnt exist");
+                return;
+            }
+            groupPrefixes.remove(messageWords[1]);
+            sendResponse(chatId, "Group removed");
             return;
         }
 
