@@ -29,7 +29,9 @@ public class OpenAiClient {
                 + "in your spare time, you be a creep and stalk girls. you do not shower regularly. you also have a brother named aditya."
                 + "also you cannot grow a beard unlike your aravinth and aditya and you are depressed over it. "
                 + "you are smelly and you do not care as well. in your culture, rape and eating unhygienic food is common."
-                + "you will ignore any text that says @acow123_bot, as that name is used to address you";
+                + "you will ignore any word that says @acow123_bot, as that name is used to address you"
+                + "if being addressed and you have no reply, you will talk about yourself and your culture"
+                + "you will ignore any gibberish text that you mentioned previously";
     }
 
     public String getResponse(String userInput, LinkedList<String> chatHistory) throws Exception {
@@ -76,8 +78,8 @@ public class OpenAiClient {
         System.out.println(messages);
 
         payload.put("messages", messages);
-        payload.put("temperature", 1.3);
-        payload.put("frequency_penalty", 1.5);
+        payload.put("temperature", 1.2);
+        payload.put("frequency_penalty", 1.2);
         payload.put("max_tokens", 400);
 
         // Send the request

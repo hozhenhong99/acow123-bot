@@ -1,6 +1,7 @@
 package org.example;
 
 
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -17,6 +18,7 @@ import java.util.LinkedList;
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.Random;
 
 
 @Component
@@ -34,6 +36,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private HashMap<String, Long> forwardedChatIds = new HashMap<>();
     private Boolean isSilenced = false;
 
+    private static int rngNum = 100;
+
     @Autowired
     private Properties properties;
 
@@ -45,13 +49,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         groupPrefixes.put("sn", "-1002065075801");
         groupPrefixes.put("ihg", "-1002095927754");
         groupPrefixes.put("retirement", "-1002079578384");
-        groupPrefixes.put("b3", "-1001953422725");
         groupPrefixes.put("test", "-4183226315");
-        groupPrefixes.put("b5new", "-1002212948737");
         groupPrefixes.put("b3new", "-1002237411325");
-        groupPrefixes.put("interest", "-4257887928");
-//        groupPrefixes.put("recre", "-1001927647862");
-//        groupPrefixes.put("divine", "-994335605");
+        groupPrefixes.put("interest", "-1002168874201");
 
         for (String id: groupPrefixes.values()) {
             LinkedList<String> ll = new LinkedList<>();
@@ -80,9 +80,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         String user = message.getFrom().getUserName();
         String groupPrefix = userGroupMapping.get(user);
         String groupId = groupPrefixes.get(groupPrefix);
-        System.out.println("ChatID " + chatId);
+//        System.out.println("ChatID " + chatId);
         if (!isAuthorized(chatId) && !(userId.equals(adarshId))) {
-            System.out.println("unauthorised " + chatId);
+            System.out.println("unauthorised " + chatId + " " + user);
             return;
         }
 
@@ -107,7 +107,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         // gpt bot
         if (chatId.startsWith("-")) {
             if (!isDirectedAtBot(message)) {
-                return;
+                //randomly reply some messages
+                if (!isContinueToSend(chatId)) {
+                    return;
+                }
             }
             String messageContent = message.getText();
             System.out.println("message: " + messageContent);
@@ -245,6 +248,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             String groupName = messageWords[1];
             String groupId = messageWords[2];
             groupPrefixes.put(groupName, groupId);
+            LinkedList<String> ll = new LinkedList<>();
+            chatHistory.put(groupId, ll);
             sendResponse(chatId, "Group added");
             return;
         } else if (command.startsWith("/remove")) {
@@ -256,12 +261,31 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendResponse(chatId, "invalid message format");
                 return;
             }
-            if (!groupPrefixes.containsKey(messageWords[1])) {
+            String groupName = messageWords[1];
+            if (!groupPrefixes.containsKey(groupName)) {
                 sendResponse(chatId, "group doesnt exist");
                 return;
             }
-            groupPrefixes.remove(messageWords[1]);
+            String groupId = groupPrefixes.get(groupName);
+            groupPrefixes.remove(groupName);
+            chatHistory.remove(groupId);
             sendResponse(chatId, "Group removed");
+            return;
+        } else if (command.startsWith("/updateRNG")) {
+            if (!Objects.equals(chatId, "260987722") && !Objects.equals(chatId, "773474769")) {
+                return;
+            }
+            String[] messageWords = command.split(" ");
+            if (messageWords.length > 2) {
+                sendResponse(chatId, "invalid message format");
+                return;
+            }
+            try {
+                rngNum = Integer.parseInt(messageWords[1]);
+                sendResponse(chatId, "Updated to " + rngNum);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid integer input");
+            }
             return;
         }
 
@@ -369,5 +393,17 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private boolean isReplyingToBot(Message message) {
         return message.isReply() && message.getReplyToMessage().getFrom().getUserName().equals(BOT_USERNAME);
+    }
+
+    private boolean isContinueToSend(String chatId) {
+        Random random = new Random();
+        int generatedNum = random.nextInt(rngNum);
+        int threshold = -1;
+        if (chatId.equals(groupPrefixes.get("test"))) {
+            threshold = 50;
+        } else if (chatId.equals(groupPrefixes.get("retirement"))) {
+            threshold = 3;
+        }
+        return generatedNum < threshold;
     }
 }
